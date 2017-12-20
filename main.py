@@ -1,6 +1,5 @@
-from matplotlib.pyplot import *
 import matplotlib.pyplot as plt
-import re
+from matplotlib.pyplot import *
 
 
 class Point:
@@ -207,29 +206,62 @@ def GetRulesParam(known, rule):
     return param
 
 
-def SplitParams(params):
-    Ret = []
+def SplitParams1(params):
+    Ret = params
     counter = pos = 0
     outside = True
+    seperator = []
     while True:
-        if counter == 0 and outside:
-            start = pos
-        outside = False
+        if pos == len(params):
+            break
         open = params.find('(', pos)
         close = params.find(')', pos)
-        if open < close and open != -1:
-            pos = open + 1
-            counter += 1
-        else:
-            pos = close + 1
-            counter -= 1
+        seperatorx = params.find(',', pos)
+        if open == close == seperatorx == -1:
+            break
+        if not ((seperatorx < open and seperatorx < close and seperatorx != -1) or (
+                            open == close == -1 and seperatorx != -1)):
+            if open < close and open != -1:
+                pos = open + 1
+                counter += 1
+            else:
+                pos = close + 1
+                counter -= 1
         if counter == 0:
-            stop = close + 1
-            outside = True
-            pos = params.find(',', pos) + 1
-            Ret += [params[start:stop]]
-            if params[stop:].strip() == '':
+            pos = params.find(',', pos)
+            if pos == -1:
                 break
+            pos += 1
+            seperator += [pos]
+    for i in seperator:
+        Ret = Ret[:i - 1] + '|' + Ret[i + 1:]
+    Ret = Ret.split('|')
+    Ret = [i.strip() for i in Ret]
+    return Ret
+
+
+def SplitParams(params):
+    Ret = params
+    counter = pos = 0
+    outside = True
+    seperator = []
+    i = 0
+    counter = 0
+    while True:
+        if i == len(params):
+            break
+        if params[i] == '(':
+            counter += 1
+        if params[i] == ')':
+            counter -= 1
+        if params[i] == ',' and counter == 0:
+            seperator += [i]
+        i += 1
+    Ret = list(Ret)
+    for i in seperator:
+        Ret[i] = '|'
+    Ret = ''.join(Ret)
+    Ret = Ret.split('|')
     Ret = [i.strip() for i in Ret]
     return Ret
 
@@ -253,7 +285,7 @@ def GetRuleUsingPos(known, rule):
     return start, stop
 
 
-def ApplyRules(rules, known):
+def ApplyRulesToProblem(rules, known):
     Ret = known
     while True:
         ruleFound = False
@@ -264,31 +296,33 @@ def ApplyRules(rules, known):
                 continue
             ruleFound = True
             start, stop = GetRuleUsingPos(Ret, ruleName)
-            print(start, stop)
-            params = SplitParams(GetRulesParam(Ret, ruleName))
+            params = GetRulesParam(Ret, ruleName)
+            params = SplitParams(params)
 
             replacement = i[2]
-            # for k, v in enumerate(i[1]):
-            #     replacement = replacement.replace(v[0], params[k])
             k = 0
             while True:
                 if k == len(replacement):
                     break
                 for j, v in enumerate(i[1]):
                     if v[0] == replacement[k] and (
-                                replacement[k + 1] == ' ' or replacement[k + 1] == ',' or replacement[k + 1] == ')'):
+                                            replacement[k + 1] == ' ' or replacement[k + 1] == ',' or replacement[
+                                        k + 1] == ')' or replacement[k + 1] == '.'):
                         replacement = replacement[:k] + params[j] + replacement[k + 1:]
                         k += len(params[j])
                 k += 1
 
-            print(replacement)
             Ret = Ret[:start] + replacement + Ret[stop + 1:]
-            print(Ret)
         if ruleFound == False:
             break
 
-    print(replacement)
+    print(Ret)
 
+    return Ret
+
+
+def ApplyRulesToProblemSet(rules, problemSet):
+    Ret = [[ApplyRulesToProblem(rules, j) for j in i] for i in problemSet]
     return Ret
 
 
@@ -321,13 +355,9 @@ Objects, Rules, Interpreting = LoadKnowledgeBase('Knowledge.kb')
 known = open('probs1.txt').readlines()
 problemSets = ProcessProblem1(known)
 problemSets = PreProcessProblemSets(problemSets, Interpreting=Interpreting)
+problemSets = ApplyRulesToProblemSet(Rules, problemSets)
 
 printx(problemSets)
-problem = problemSets[0][1]
-objects = GetObjects(Objects, problem)
-printx(problem)
-ruleApplied = ApplyRules(Rules, problem)
-printx(ruleApplied)
 # known = ApplyInterpreting(Interpreting, known)
 # print(known)
 # points = GetPoints(known)

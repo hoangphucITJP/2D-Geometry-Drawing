@@ -1,6 +1,6 @@
 HinhBinhHanh(ABCD)
 DuongKinh(DoanThang(AB), DuongTron(O, r))
-Thuoc(Diem(D), DuongTron(O, r))
+Thuoc2(Diem(D), DuongTron(O, r))
 
 VuongGoc(DoanThang(BN), DoanThang(AC))
 VuongGoc(DoanThang(DM), DoanThang(AC))
