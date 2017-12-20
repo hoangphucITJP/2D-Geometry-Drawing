@@ -8,7 +8,7 @@ Vector(x: float, y: float): x = x, y = y
 TamGiac(A: Diem, B: Diem, C: Diem): Diem1 = A, Diem2 = B, Diem3 = C
 
 #Rules
-VuongGoc(A: DoanThang, B: DoanThang): Vector(A).x*Vector(b).x + Vector(A).y*Vector(b).y == 0
+VuongGoc(A: DoanThang, B: DoanThang): Vector(A).x*Vector(B).x + Vector(A).y*Vector(B).y == 0
 Thuoc(A: Diem, B: DoanThang): Vector(DoanThang(A, B.Diem1)).x*Vector(DoanThang(A, B.Diem2)).y - Vector(DoanThang(A, B.Diem1)).y*Vector(DoanThang(A, B.Diem2)).x == 0
 Thuoc(A: Diem, B: DuongTron): DoDai(DoanThang(A, B.Tam)) == B.BK
 VuongGoc(A: DoanThang, B: DoanThang): VectorTichVoHuong(Vector(A), Vector(B)) == 0

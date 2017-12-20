@@ -185,27 +185,111 @@ def ApplyInterpreting(interpreting, known):
     return Ret
 
 
-def ApplyRules(rules, known):
-    Ret = known
-    for i in rules:
-        start = pos = Ret.find(i[0])
-        if start == -1:
-            continue
-        print(i)
-        print(start)
-        counter = 1
-        while counter != 0:
-            open = Ret.find('(', pos)
-            close = Ret.find(')', pos)
-            if open<close and open!=-1:
-                pos=open
-                counter+=1
-            else:
-                pos=close
-                counter-=1
-        print(pos)
+def GetRulesParam(known, rule):
+    param = known
+    start = pos = param.find(rule)
+    counter = 0
+    while True:
+        open = param.find('(', pos)
+        close = param.find(')', pos)
+        if open < close and open != -1:
+            pos = open + 1
+            counter += 1
+        else:
+            pos = close + 1
+            counter -= 1
+        if counter == 0:
+            stop = close
+            break
+    start += len(rule)
+    start += 1
+    param = known[start:stop]
+    return param
+
+
+def SplitParams(params):
+    Ret = []
+    counter = pos = 0
+    outside = True
+    while True:
+        if counter == 0 and outside:
+            start = pos
+        outside = False
+        open = params.find('(', pos)
+        close = params.find(')', pos)
+        if open < close and open != -1:
+            pos = open + 1
+            counter += 1
+        else:
+            pos = close + 1
+            counter -= 1
+        if counter == 0:
+            stop = close + 1
+            outside = True
+            pos = params.find(',', pos) + 1
+            Ret += [params[start:stop]]
+            if params[stop:].strip() == '':
+                break
+    Ret = [i.strip() for i in Ret]
     return Ret
 
+
+def GetRuleUsingPos(known, rule):
+    param = known
+    start = pos = param.find(rule)
+    counter = 0
+    while True:
+        open = param.find('(', pos)
+        close = param.find(')', pos)
+        if open < close and open != -1:
+            pos = open + 1
+            counter += 1
+        else:
+            pos = close + 1
+            counter -= 1
+        if counter == 0:
+            stop = close
+            break
+    return start, stop
+
+
+def ApplyRules(rules, known):
+    Ret = known
+    while True:
+        ruleFound = False
+        for i in rules:
+            ruleName = i[0]
+            foundRule = Ret.find(ruleName)
+            if foundRule == -1:
+                continue
+            ruleFound = True
+            start, stop = GetRuleUsingPos(Ret, ruleName)
+            print(start, stop)
+            params = SplitParams(GetRulesParam(Ret, ruleName))
+
+            replacement = i[2]
+            # for k, v in enumerate(i[1]):
+            #     replacement = replacement.replace(v[0], params[k])
+            k = 0
+            while True:
+                if k == len(replacement):
+                    break
+                for j, v in enumerate(i[1]):
+                    if v[0] == replacement[k] and (
+                                replacement[k + 1] == ' ' or replacement[k + 1] == ',' or replacement[k + 1] == ')'):
+                        replacement = replacement[:k] + params[j] + replacement[k + 1:]
+                        k += len(params[j])
+                k += 1
+
+            print(replacement)
+            Ret = Ret[:start] + replacement + Ret[stop + 1:]
+            print(Ret)
+        if ruleFound == False:
+            break
+
+    print(replacement)
+
+    return Ret
 
 
 def GetObjects(object, known):
