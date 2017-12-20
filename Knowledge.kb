@@ -8,27 +8,30 @@ Vector(x: float, y: float): x = x, y = y
 TamGiac(A: Diem, B: Diem, C: Diem): Diem1 = A, Diem2 = B, Diem3 = C
 
 #Rules
-VuongGoc(A: DoanThang, B: DoanThang): Vector(A.Diem1, A.Diem2).x*Vector(B.Diem1, B.Diem2).x + Vector(A.Diem1, B.Diem2).y*Vector(B.Diem1, B.Diem2).y == 0
-Thuoc1(A: Diem, B: DoanThang): Vector(A, B.Diem1).x*Vector(A, B.Diem2).y - Vector(A, B.Diem1).y*Vector(A, B.Diem2).x == 0
-Thuoc2(A: Diem, B: DuongTron): DoDai2(DoanThang(A, B.Tam)) == B.BK
-VuongGoc(A: DoanThang, B: DoanThang): VectorTichVoHuong(Vector(A.Diem1, A.Diem2), Vector(B.Diem1, B.Diem2)) == 0
-SongSong(A: DoanThang, B: DoanThang): Vector(A.Diem1, A.Diem2).x*Vector(B.Diem1, B.Diem2).y - Vector(A.Diem1, A.Diem2).y*Vector(B.Diem1, B.Diem2).x == 0
-HinhBinhHanh(A: Diem, B: Diem, C: Diem, D: Diem): SongSong(DoanThang(A, B), DoanThang(C, D)) && SongSong(DoanThang(A, D), DoanThang(C, B))
-DuongKinh(A: DoanThang, B: DuongTron): Thuoc2(A.Diem1, B) && Thuoc2(A.Diem2, B) && TrungDiem(B.Tam, A)
-TrungDiem(A: Diem, B: DoanThang): DoanThangBangNhau(DoanThang(A, B.Diem1), DoanThang(A, B.Diem2))
+VuongGoc(A: DoanThang, B: DoanThang): Vector(Diem1(A), Diem2(A)).x*Vector(Diem1(B), Diem2(B)).x + Vector(Diem1(A), Diem2(B)).y*Vector(Diem1(B), Diem2(B)).y == 0
+Thuoc1(A: Diem, B: DoanThang): Vector(A, Diem1(B)).x*Vector(A, B.Diem2).y - Vector(A, Diem1(B)).y*Vector(A, B.Diem2).x == 0
+Thuoc2(A: Diem, B: DuongTron): DoDai2((A, B.Tam)) == B.BK
+VuongGoc(A: DoanThang, B: DoanThang): VectorTichVoHuong(Vector(Diem1(A), A.Diem2), Vector(B.Diem1, Diem2(B))) == 0
+SongSong(A: DoanThang, B: DoanThang): Vector(Diem1(A), Diem2(A)).x*Vector(Diem1(B), Diem2(B)).y - Vector(Diem1(A), Diem2(A)).y*Vector(Diem1(B), Diem2(B)).x == 0
+HinhBinhHanh(A: Diem, B: Diem, C: Diem, D: Diem): SongSong((A, B), (C, D)) && SongSong((A, D), (C, B))
+DuongKinh(A: DoanThang, B: DuongTron): Thuoc2(Diem1(A), B) && Thuoc2(Diem2(A), B) && TrungDiem(B.Tam, A)
+TrungDiem(A: Diem, B: DoanThang): DoanThangBangNhau((A, Diem1(B)), (A, Diem2(B)))
 DoDai1(A: Vector): sqrt(A.x^2 + A.y^2)
-DoDai2(A: DoanThang): sqrt(Vector(A.Diem1, A.Diem2).x^2 + Vector(A.Diem1, A.Diem2).y^2)
+DoDai2(A: DoanThang): sqrt(Vector(Diem1(A), Diem2(A)).x^2 + Vector(Diem1(A), Diem2(A)).y^2)
 TrungNhau(A: Diem, B: Diem): (A.x == B.x) && (A.y == B.y)
 KhongTrungNhau(A: Diem, B: Diem): !TrungNhau(A, B)
-NoiTiepTrong(A: TamGiac, B: DuongTron): Thuoc2(A.Diem1, B) && Thuoc2(A.Diem2, B) && Thuoc2(A.Diem3, B)
+NoiTiepTrong(A: TamGiac, B: DuongTron): Thuoc2(Diem1(A), B) && Thuoc2(Diem2(A), B) && Thuoc2(A.Diem3, B)
 TiepTuyen(A: DoanThang, B: DuongTron): DoanThangDoDai(KhoangCach(B.Tam, A), B.BK)
-KhoangCach(A: Diem, B: DoanThang): abs((B.Diem2.y - B.Diem1.y)*A.x - (B.Diem2.x - B.Diem1.x)*A.y + B.Diem2.x*B.Diem1.y - B.Diem2.y*B.Diem1.x)/DoDai2(B))
+KhoangCach(A: Diem, B: DoanThang): abs((Diem2(B).y - Diem1(B).y)*A.x - (Diem2(B).x - Diem1(B).x)*A.y + Diem2(B).x*Diem1(B).y - Diem2(B).y*Diem1(B).x)/DoDai2(B))
 VectorHieu(A: Vector, B: Vector): Vector(A.x - B.x, A.y - B.y)
 VectorTichVoHuong(A: Vector, B: Vector): A.x*B.x + A.y*B.y
 DoanThangBangNhau(A: DoanThang, B: DoanThang): DoDai2(A) == DoDai2(B)
 DoanThangDoDai(A: DoanThang, B: float): DoDai2(A) == B
 
+#Rules0
+Diem1(A: Diem, B: Diem): A
+Diem2(A: Diem, B: Diem): B
+
 #Interpreting
-DoanThang(0, 1)
 HinhBinhHanh(0, 1, 2, 3)
 TamGiac(0, 1, 2)

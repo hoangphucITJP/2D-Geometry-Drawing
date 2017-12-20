@@ -113,7 +113,7 @@ def LoadKnowledgeBase(knowledgeFile):
     knownledgeFile.close()
 
     knownledge = [i for i in knownledge if i != '']
-    categorized = [[], [], []]
+    categorized = [[], [], [], []]
     for i in knownledge:
         if i == '#Objects':
             k = 0
@@ -121,11 +121,15 @@ def LoadKnowledgeBase(knowledgeFile):
         if i == '#Rules':
             k = 1
             continue
-        if i == '#Interpreting':
+        if i == '#Rules0':
             k = 2
             continue
+        if i == '#Interpreting':
+            k = 3
+            continue
         categorized[k] += [i]
-    return categorized[0], ProcessRules(categorized[1]), ProcessInterpreting(categorized[2])
+    return categorized[0], ProcessRules(categorized[1]), ProcessRules(categorized[2]), ProcessInterpreting(
+        categorized[3])
 
 
 def ProcessInterpreting(interpreting):
@@ -267,6 +271,27 @@ def SplitParams(params):
 
 
 def GetRuleUsingPos(known, rule):
+    start = pos = known.find(rule)
+    i = start
+    counter = 0
+    inside = False
+    while True:
+        i += 1
+        if i == len(known):
+            break
+        if known[i] == '(':
+            inside = True
+            counter += 1
+        if known[i] == ')':
+            counter -= 1
+        if counter == 0 and inside:
+            stop = i
+            break
+
+    return start, stop
+
+
+def GetRuleUsingPos1(known, rule):
     param = known
     start = pos = param.find(rule)
     counter = 0
@@ -316,13 +341,53 @@ def ApplyRulesToProblem(rules, known):
         if ruleFound == False:
             break
 
-    print(Ret)
-
     return Ret
 
 
-def ApplyRulesToProblemSet(rules, problemSet):
+def ApplyRules0ToProblem(rules, known):
+    Ret = known
+    while True:
+        ruleFound = False
+        for i in rules:
+            ruleName = i[0]
+            foundRule = Ret.find(ruleName)
+            if foundRule == -1:
+                continue
+            ruleFound = True
+            start, stop = GetRuleUsingPos(Ret, ruleName)
+            Ret = Ret[:start + len(ruleName) + 1] + Ret[start + len(ruleName) + 2:stop - 1] + Ret[stop:]
+            start, stop = GetRuleUsingPos(Ret, ruleName)
+            params = GetRulesParam(Ret, ruleName)
+            params = SplitParams(params)
+
+            replacement = i[2]
+            k = 0
+            while True:
+                if k >= len(replacement):
+                    break
+                for j, v in enumerate(i[1]):
+                    if k >= len(replacement):
+                        break
+                    if v[0] == replacement[k]:
+                        if k + 1 != len(replacement):
+                            if (replacement[k + 1] != ' ' and replacement[k + 1] != ',' and replacement[
+                                    k + 1] != ')' and replacement[k + 1] != '.'):
+                                continue
+                        replacement = replacement[:k] + params[j] + replacement[k + 1:]
+                        k += len(params[j])
+                k += 1
+
+            Ret = Ret[:start] + replacement + Ret[stop + 1:]
+        if ruleFound == False:
+            break
+
+    print(Ret)
+    return Ret
+
+
+def ApplyRulesToProblemSet(rules, rules0, problemSet):
     Ret = [[ApplyRulesToProblem(rules, j) for j in i] for i in problemSet]
+    Ret = [[ApplyRules0ToProblem(rules0, j) for j in i] for i in Ret]
     return Ret
 
 
@@ -340,7 +405,7 @@ def printx(var):
     print(var)
 
 
-Objects, Rules, Interpreting = LoadKnowledgeBase('Knowledge.kb')
+Objects, Rules, Rules0, Interpreting = LoadKnowledgeBase('Knowledge.kb')
 # print(Objects)
 # print(Rules)
 
@@ -355,7 +420,7 @@ Objects, Rules, Interpreting = LoadKnowledgeBase('Knowledge.kb')
 known = open('probs1.txt').readlines()
 problemSets = ProcessProblem1(known)
 problemSets = PreProcessProblemSets(problemSets, Interpreting=Interpreting)
-problemSets = ApplyRulesToProblemSet(Rules, problemSets)
+problemSets = ApplyRulesToProblemSet(Rules, Rules0, problemSets)
 
 printx(problemSets)
 # known = ApplyInterpreting(Interpreting, known)
