@@ -128,7 +128,8 @@ def LoadKnowledgeBase(knowledgeFile):
             k = 3
             continue
         categorized[k] += [i]
-    return categorized[0], ProcessRules(categorized[1]), ProcessRules(categorized[2]), ProcessInterpreting(
+    return ProcessObjects(categorized[0]), ProcessRules(categorized[1]), ProcessRules(
+        categorized[2]), ProcessInterpreting(
         categorized[3])
 
 
@@ -157,6 +158,26 @@ def ProcessRules(rules):
         param = [[i[0].strip(), i[1].strip()] for i in param]
         rule = [name.strip(), param, val.strip()]
         Ret += [rule]
+
+    return Ret
+
+
+def ProcessObjects(objects):
+    Ret = []
+    for i in objects:
+        colon = i.rfind(':')
+        name = i[:colon].strip()
+        param = name[name.find('(') + 1:-1]
+        name = name[:name.find('(')]
+        param = param.split(',')
+        param = [i[:i.find(':')].strip() for i in param]
+        att = i[colon + 1:].strip()
+        att = att.split(',')
+        att = [i.split('=') for i in att]
+        att = [[j.strip() for j in i] for i in att]
+        att = {i[0]: i[1] for i in att}
+        obj = [name, param, att]
+        Ret += [obj]
 
     return Ret
 
@@ -327,7 +348,7 @@ def ApplyRulesToProblem(rules, known):
             replacement = i[2]
             k = 0
             while True:
-                if k == len(replacement):
+                if k >= len(replacement):
                     break
                 for j, v in enumerate(i[1]):
                     if v[0] == replacement[k] and (
@@ -385,14 +406,54 @@ def ApplyRules0ToProblem(rules, known):
     return Ret
 
 
-def ApplyRulesToProblemSet(rules, rules0, problemSet):
+def ApplyRulesToProblemSet(rules, rules0, objects, problemSet):
     Ret = [[ApplyRulesToProblem(rules, j) for j in i] for i in problemSet]
     Ret = [[ApplyRules0ToProblem(rules0, j) for j in i] for i in Ret]
+    Ret = [[ApplyObjects(objects, j) for j in i] for i in Ret]
     return Ret
 
 
-def GetObjects(object, known):
-    Ret = []
+def ApplyObjects(objects, problem):
+    Ret = problem
+
+    while True:
+        foundRule = False
+        for i in objects:
+            name = i[0]
+            start, stop = GetRuleUsingPos(Ret, name)
+            if start == -1:
+                continue
+            foundRule = True
+            stop += 1
+            if Ret[stop] == '.':
+                stop += 1
+            stopSymbol = ['*', ' ', '=', '+', '-', ')', ',', '^', '.']
+            SymbolPos = [Ret.find(j, stop) for j in stopSymbol]
+            SymbolPos = [j for j in SymbolPos if j != -1]
+            if (len(SymbolPos) == 0):
+                stop = len(Ret) - 1
+            else:
+                stop = min(SymbolPos) - 1
+            params = SplitParams(GetRulesParam(Ret, name))
+            replacement = Ret[Ret.rfind(').', 0, stop) + 2:stop + 1]
+            replacement = replacement.split('.')[0]
+            replacement = i[2][replacement]
+
+            k = 0
+            while True:
+                if k >= len(replacement):
+                    break
+                for j, v in enumerate(i[1]):
+                    if v == replacement[k]:
+                        replacement = replacement[:k] + params[j] + replacement[k + 1:]
+                        k += len(params[j])
+                        break
+                k += 1
+            Ret = Ret[:start] + replacement + Ret[stop + 1:]
+            pass
+        if not foundRule:
+            break
+
     return Ret
 
 
@@ -406,23 +467,14 @@ def printx(var):
 
 
 Objects, Rules, Rules0, Interpreting = LoadKnowledgeBase('Knowledge.kb')
-# print(Objects)
-# print(Rules)
 
-# print("Nhập đề bài\n")
-# known = []
-# while True:
-#     line = input()
-#     if line:
-#         known += [line]
-#     else:
-#         break
 known = open('probs1.txt').readlines()
 problemSets = ProcessProblem1(known)
 problemSets = PreProcessProblemSets(problemSets, Interpreting=Interpreting)
-problemSets = ApplyRulesToProblemSet(Rules, Rules0, problemSets)
+problemSets = ApplyRulesToProblemSet(Rules, Rules0, Objects, problemSets)
+print('')
+print(problemSets)
 
-printx(problemSets)
 # known = ApplyInterpreting(Interpreting, known)
 # print(known)
 # points = GetPoints(known)

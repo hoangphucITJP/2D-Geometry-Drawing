@@ -1,14 +1,10 @@
 #Objects
-Diem: x: float, y: float
-Diem(A: float, B: float): x = A, y = B
-DoanThang(A: Diem, B: Diem): Diem1 = A, Diem2 = B
+Vector(A: Diem, B: Diem): x = (B.x - A.x), y = (B.y - A.y)
 DuongTron(A: Diem, r: float): Tam = A, BK = r
-Vector(A: Diem, B: Diem): x = B.x - A.x, y = B.y - A.y
-Vector(x: float, y: float): x = x, y = y
 TamGiac(A: Diem, B: Diem, C: Diem): Diem1 = A, Diem2 = B, Diem3 = C
 
 #Rules
-VuongGoc(A: DoanThang, B: DoanThang): Vector(Diem1(A), Diem2(A)).x*Vector(Diem1(B), Diem2(B)).x + Vector(Diem1(A), Diem2(B)).y*Vector(Diem1(B), Diem2(B)).y == 0
+VuongGoc(A: DoanThang, B: DoanThang): Vector(Diem1(A), Diem2(A)).x*Vector(Diem1(B), Diem2(B)).x + Vector(Diem1(A), Diem2(A)).y*Vector(Diem1(B), Diem2(B)).y == 0
 Thuoc1(A: Diem, B: DoanThang): Vector(A, Diem1(B)).x*Vector(A, B.Diem2).y - Vector(A, Diem1(B)).y*Vector(A, B.Diem2).x == 0
 Thuoc2(A: Diem, B: DuongTron): DoDai2((A, B.Tam)) == B.BK
 VuongGoc(A: DoanThang, B: DoanThang): VectorTichVoHuong(Vector(Diem1(A), A.Diem2), Vector(B.Diem1, Diem2(B))) == 0
