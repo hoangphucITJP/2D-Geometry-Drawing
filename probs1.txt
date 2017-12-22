@@ -2,5 +2,5 @@ HinhBinhHanh(ABCD)
 DuongKinh((A,B), DuongTron(O, r))
 Thuoc2(D, DuongTron(O, r))
 
-VuongGoc((B,N), (A,C))
-VuongGoc((D,M), (A,C))
+ChieuVuongGoc(B, (A,C), N)
+ChieuVuongGoc(D, (A,C), M)

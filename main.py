@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import *
+from sympy import *
 
 
 class Point:
@@ -292,7 +293,7 @@ def SplitParams(params):
 
 
 def GetRuleUsingPos(known, rule):
-    start = pos = known.find(rule)
+    start = stop = pos = known.find(rule)
     i = start
     counter = 0
     inside = False
@@ -399,6 +400,7 @@ def ApplyRules0ToProblem(rules, known):
                 k += 1
 
             Ret = Ret[:start] + replacement + Ret[stop + 1:]
+            pass
         if ruleFound == False:
             break
 
@@ -406,10 +408,49 @@ def ApplyRules0ToProblem(rules, known):
     return Ret
 
 
+def SplitProblem(problem):
+    Ret = problem.split(';')
+    Ret = [i.strip() for i in Ret]
+    return Ret
+
+
+def PrintProblemSet(problemSet):
+    for i in problemSet:
+        for j in i:
+            print(j)
+
+
+def EquationToExpression(equa):
+    Ret = equa.replace('.', '').replace('==', '-(')
+    Ret = Ret + ')'
+    return Ret
+
+
+def GetSymbols(expr):
+    return expr.free_symbols
+
+
 def ApplyRulesToProblemSet(rules, rules0, objects, problemSet):
-    Ret = [[ApplyRulesToProblem(rules, j) for j in i] for i in problemSet]
-    Ret = [[ApplyRules0ToProblem(rules0, j) for j in i] for i in Ret]
-    Ret = [[ApplyObjects(objects, j) for j in i] for i in Ret]
+    tmp = [[ApplyRulesToProblem(rules, j) for j in i] for i in problemSet]
+    tmp = [[ApplyRules0ToProblem(rules0, j) for j in i] for i in tmp]
+    tmp = [[ApplyObjects(objects, j) for j in i] for i in tmp]
+    Ret = []
+    for i in tmp:
+        tmp1 = []
+        for j in i:
+            semicolon = j.find(';')
+            if semicolon != -1:
+                tmp2 = j.split(';')
+                tmp2 = [k.strip() for k in tmp2]
+            else:
+                tmp2 = [j]
+            tmp1 += tmp2
+        Ret += [tmp1]
+    Ret = [[EquationToExpression(j) for j in i] for i in Ret]
+    Ret = [
+        [[j, [k.strip() for k in str(GetSymbols(sympify(j))).replace('{', '').replace('}', '').split(',')]] for j in i]
+        for i in Ret]
+
     return Ret
 
 
@@ -457,6 +498,12 @@ def ApplyObjects(objects, problem):
     return Ret
 
 
+def SolveProblemSet(problemSet):
+    Ret = problemSets
+    Ret = [sorted(i, key=lambda x: len(x[1])) for i in Ret]
+    return Ret
+
+
 def variablename(var):
     return [tpl[0] for tpl in filter(lambda x: var is x[1], globals().items())][0]
 
@@ -468,12 +515,16 @@ def printx(var):
 
 Objects, Rules, Rules0, Interpreting = LoadKnowledgeBase('Knowledge.kb')
 
-known = open('probs1.txt').readlines()
+known = open('probs2.txt').readlines()
 problemSets = ProcessProblem1(known)
 problemSets = PreProcessProblemSets(problemSets, Interpreting=Interpreting)
 problemSets = ApplyRulesToProblemSet(Rules, Rules0, Objects, problemSets)
 print('')
-print(problemSets)
+PrintProblemSet(problemSets)
+print('')
+Result = SolveProblemSet(problemSets)
+PrintProblemSet(Result)
+
 
 # known = ApplyInterpreting(Interpreting, known)
 # print(known)

@@ -1,12 +1,3 @@
-#prob1
-HinhBinhHanh(ABCD)
-DuongKinh((A, B), DuongTron(O, r))
-Thuoc(D, DuongTron(O, r))
-
-ChieuVuongGoc(B, (A,C), N)
-ChieuVuongGoc(D, (A,C), M)
-
-#prob2
 Thuoc1(D, (B, C))
 NoiTiepTrong(TamGiac(ABC), DuongTron(O, r))
 
@@ -19,4 +10,3 @@ Thuoc2(D, DuongTron(O2, r2))
 
 Thuoc2(E, DuongTron(O1, r1))
 Thuoc2(E, DuongTron(O2, r2))
-!TrungNhau(D, E)
