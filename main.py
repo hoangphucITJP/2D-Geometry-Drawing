@@ -108,13 +108,19 @@ def GetLineSeg(known):
     return Ret
 
 
+def GetConstraint(known, Constraint):
+    for i in Constraint:
+        print(i)
+    return known
+
+
 def LoadKnowledgeBase(knowledgeFile):
     knownledgeFile = open(knowledgeFile)
     knownledge = [line.rstrip('\n') for line in knownledgeFile]
     knownledgeFile.close()
 
     knownledge = [i for i in knownledge if i != '']
-    categorized = [[], [], [], []]
+    categorized = [[], [], [], [], []]
     for i in knownledge:
         if i == '#Objects':
             k = 0
@@ -128,10 +134,13 @@ def LoadKnowledgeBase(knowledgeFile):
         if i == '#Interpreting':
             k = 3
             continue
+        if i == '#Constraint':
+            k = 4
+            continue
         categorized[k] += [i]
     return ProcessObjects(categorized[0]), ProcessRules(categorized[1]), ProcessRules(
         categorized[2]), ProcessInterpreting(
-        categorized[3])
+        categorized[3]), ProcessRules(categorized[4])
 
 
 def ProcessInterpreting(interpreting):
@@ -332,9 +341,10 @@ def GetRuleUsingPos1(known, rule):
     return start, stop
 
 
-def ApplyRulesToProblem(rules, known):
+def ApplyRulesToProblem(rules, constraint, known):
     Ret = known
     while True:
+        Ret = GetConstraint(Ret, constraint)
         ruleFound = False
         for i in rules:
             ruleName = i[0]
@@ -404,7 +414,6 @@ def ApplyRules0ToProblem(rules, known):
         if ruleFound == False:
             break
 
-    print(Ret)
     return Ret
 
 
@@ -418,6 +427,7 @@ def PrintProblemSet(problemSet):
     for i in problemSet:
         for j in i:
             print(j)
+        print('\n')
 
 
 def EquationToExpression(equa):
@@ -430,8 +440,8 @@ def GetSymbols(expr):
     return expr.free_symbols
 
 
-def ApplyRulesToProblemSet(rules, rules0, objects, problemSet):
-    tmp = [[ApplyRulesToProblem(rules, j) for j in i] for i in problemSet]
+def ApplyRulesToProblemSet(rules, rules0, objects, constraint, problemSet):
+    tmp = [[ApplyRulesToProblem(rules, constraint, j) for j in i] for i in problemSet]
     tmp = [[ApplyRules0ToProblem(rules0, j) for j in i] for i in tmp]
     tmp = [[ApplyObjects(objects, j) for j in i] for i in tmp]
     Ret = []
@@ -513,18 +523,16 @@ def printx(var):
     print(var)
 
 
-Objects, Rules, Rules0, Interpreting = LoadKnowledgeBase('Knowledge.kb')
+Objects, Rules, Rules0, Interpreting, Constraint = LoadKnowledgeBase('Knowledge.kb')
 
 known = open('probs2.txt').readlines()
 problemSets = ProcessProblem1(known)
 problemSets = PreProcessProblemSets(problemSets, Interpreting=Interpreting)
-problemSets = ApplyRulesToProblemSet(Rules, Rules0, Objects, problemSets)
-print('')
-PrintProblemSet(problemSets)
+problemSets = ApplyRulesToProblemSet(Rules, Rules0, Objects, Constraint, problemSets)
 print('')
 Result = SolveProblemSet(problemSets)
 PrintProblemSet(Result)
-
+# TODO: solve abs() equation
 
 # known = ApplyInterpreting(Interpreting, known)
 # print(known)
