@@ -10,3 +10,4 @@ Thuoc2(D, DuongTron(O2, r2))
 
 Thuoc2(E, DuongTron(O1, r1))
 Thuoc2(E, DuongTron(O2, r2))
+KhongTrung(E, D)

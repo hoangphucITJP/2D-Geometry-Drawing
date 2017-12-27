@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import *
 from sympy import *
+import random
 
 
 class Point:
@@ -109,9 +110,38 @@ def GetLineSeg(known):
 
 
 def GetConstraint(known, Constraint):
-    for i in Constraint:
-        print(i)
-    return known
+    known0 = known
+    Ret = []
+    while True:
+        ConstraintFound = False
+        for i in Constraint:
+            ruleName = i[0]
+            foundRule = known0.find(ruleName)
+            if foundRule == -1:
+                continue
+            ConstraintFound = True
+            start, stop = GetRuleUsingPos(known0, ruleName)
+            params = GetRulesParam(known0, ruleName)
+            params = SplitParams(params)
+
+            replacement = i[2]
+            k = 0
+            while True:
+                if k >= len(replacement):
+                    break
+                for j, v in enumerate(i[1]):
+                    if v[0] == replacement[k] and (
+                                            replacement[k + 1] == ' ' or replacement[k + 1] == ',' or replacement[
+                                        k + 1] == ')' or replacement[k + 1] == '.'):
+                        replacement = replacement[:k] + params[j] + replacement[k + 1:]
+                        k += len(params[j])
+                k += 1
+            Ret += [replacement]
+            known0 = known0[:start] + known0[stop + 1:]
+        if ConstraintFound == False:
+            break
+
+    return Ret
 
 
 def LoadKnowledgeBase(knowledgeFile):
@@ -341,12 +371,13 @@ def GetRuleUsingPos1(known, rule):
     return start, stop
 
 
-def ApplyRulesToProblem(rules, constraint, known):
+def ApplyRulesToProblem(rules, constraint, known, Constraint):
     Ret = known
     while True:
-        Ret = GetConstraint(Ret, constraint)
         ruleFound = False
         for i in rules:
+            RetConstraint = GetConstraint(Ret, constraint)
+            Constraint.update(set(RetConstraint))
             ruleName = i[0]
             foundRule = Ret.find(ruleName)
             if foundRule == -1:
@@ -440,8 +471,28 @@ def GetSymbols(expr):
     return expr.free_symbols
 
 
+def ProcessConstraints(Constraint):
+    Ret = []
+    for i in Constraint:
+        Ret += i.split(';')
+    Ret = [i.strip() for i in Ret]
+
+    return Ret
+
+
 def ApplyRulesToProblemSet(rules, rules0, objects, constraint, problemSet):
-    tmp = [[ApplyRulesToProblem(rules, constraint, j) for j in i] for i in problemSet]
+    Constraint = set()
+    tmp = [[ApplyRulesToProblem(rules, constraint, j, Constraint) for j in i] for i in problemSet]
+    Constraint = list(Constraint)
+    Constraint = ProcessConstraints(Constraint)
+    # Constraint = [ApplyRulesToProblem(constraint, constraint, i, set()) for i in Constraint]
+    Constraint = [ApplyRules0ToProblem(rules0, i) for i in Constraint]
+    Constraint = [ApplyObjects(objects, i) for i in Constraint]
+    Constraint = [i.replace('.', '') for i in Constraint]
+    Constraint = [sympify(i.split('!=')[0] + '-' + i.split('!=')[1]) if i.find('!=') != -1 else sympify(i) for i in
+                  Constraint]
+    Constraint = [[i, str(GetSymbols(sympify(i))).replace('{', '').replace('}', '').split(',')] for i in Constraint]
+    Constraint = [[i[0], [j.strip() for j in i[1]]] for i in Constraint]
     tmp = [[ApplyRules0ToProblem(rules0, j) for j in i] for i in tmp]
     tmp = [[ApplyObjects(objects, j) for j in i] for i in tmp]
     Ret = []
@@ -456,12 +507,12 @@ def ApplyRulesToProblemSet(rules, rules0, objects, constraint, problemSet):
                 tmp2 = [j]
             tmp1 += tmp2
         Ret += [tmp1]
-    Ret = [[EquationToExpression(j) for j in i] for i in Ret]
+    Ret = [[EquationToExpression(j) for j in i if j != ''] for i in Ret]
     Ret = [
         [[j, [k.strip() for k in str(GetSymbols(sympify(j))).replace('{', '').replace('}', '').split(',')]] for j in i]
         for i in Ret]
 
-    return Ret
+    return Ret, Constraint
 
 
 def ApplyObjects(objects, problem):
@@ -508,10 +559,64 @@ def ApplyObjects(objects, problem):
     return Ret
 
 
-def SolveProblemSet(problemSet):
+def SolveProblemSet(problemSet, constraint):
     Ret = problemSets
+    Sol = {}
     Ret = [sorted(i, key=lambda x: len(x[1])) for i in Ret]
+    for i in Ret:
+        for j in i:
+            while True:
+                unknown = set(j[1]) - set(Sol)
+                numofunknown = len(unknown)
+                if numofunknown > 1:
+                    GenerateUnknown(Sol, next(iter(unknown)), constraint)
+                elif numofunknown == 1:
+                    SolveEquation(j[0], Sol, constraint)
+                    break
     return Ret
+
+
+def SolveEquation(equa, solution, constraint):
+    Ret = sympify(equa).subs(solution)
+    Ret0 = solve(Ret, dict=True)
+    for i in Ret0:
+        sol = Ret0[0]
+        k = next(iter(sol))
+        sol = {str(k): sol[k]}
+        tmp = solution
+        tmp.update(sol)
+        if CheckConstraint(tmp, constraint):
+            solution.update(sol)
+            break
+    print('')
+    pass
+
+
+def GenerateUnknown(solution, unknown, constraint):
+    while True:
+        tmp1 = solution
+        tmp0 = random.randint(-20, 20)
+        tmp1.update({unknown: tmp0})
+        if CheckConstraint(tmp1, constraint):
+            solution.update(tmp1)
+            break
+
+
+def CheckConstraint(solution, constraint):
+    keys = set(solution.keys())
+    sastisfied = True
+    for i in constraint:
+        constraintKeys = set(i[1])
+        if len(constraintKeys - keys) == 0:
+            constr = i[0]
+            constr = constr.subs(solution)
+            if constr.is_Boolean:
+                sastisfied = constr
+            else:
+                sastisfied = True if constr != 0 else False
+            if not sastisfied:
+                break
+    return sastisfied
 
 
 def variablename(var):
@@ -528,9 +633,9 @@ Objects, Rules, Rules0, Interpreting, Constraint = LoadKnowledgeBase('Knowledge.
 known = open('probs2.txt').readlines()
 problemSets = ProcessProblem1(known)
 problemSets = PreProcessProblemSets(problemSets, Interpreting=Interpreting)
-problemSets = ApplyRulesToProblemSet(Rules, Rules0, Objects, Constraint, problemSets)
+problemSets, constraint = ApplyRulesToProblemSet(Rules, Rules0, Objects, Constraint, problemSets)
 print('')
-Result = SolveProblemSet(problemSets)
+Result = SolveProblemSet(problemSets, constraint)
 PrintProblemSet(Result)
 # TODO: solve abs() equation
 
