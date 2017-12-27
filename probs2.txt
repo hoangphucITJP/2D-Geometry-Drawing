@@ -1,10 +1,13 @@
 Thuoc1(D, (B, C))
+
 NoiTiepTrong(TamGiac(ABC), DuongTron(O, r))
 
 TiepTuyen((A, B), DuongTron(O1, r1))
-TiepTuyen((A, C), DuongTron(O2, r2))
 Thuoc2(B, DuongTron(O1, r1))
+
+TiepTuyen((A, C), DuongTron(O2, r2))
 Thuoc2(C, DuongTron(O2, r2))
+
 Thuoc2(D, DuongTron(O1, r1))
 Thuoc2(D, DuongTron(O2, r2))
 

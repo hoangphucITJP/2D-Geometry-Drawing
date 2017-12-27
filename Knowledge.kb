@@ -3,6 +3,17 @@ Vector(A: Diem, B: Diem): x = (B.x - A.x), y = (B.y - A.y)
 DuongTron(A: Diem, r: float): Tam = A, BK = r
 TamGiac(A: Diem, B: Diem, C: Diem): Diema = A, Diemb = B, Diemc = C
 
+#Constructings
+TamGiac(A: Diem, B: Diem, C: Diem): DoanThang(A, B) ; DoanThang(A, C) ; DoanThang(B, C)
+HinhBinhHanh(A: Diem, B: Diem, C: Diem, D: Diem): DoanThang(A, B) ; DoanThang(B, C) ; DoanThang(C, D); DoanThang(D, A)
+ChieuVuongGoc(A: Diem, B: DoanThang, C: Diem): DoanThang(A, C) ; DoanThang(Diem1(B), C) ; DoanThang(Diem2(B), C)
+DuongTron(A: Diem, r: float): DuongTron(A, r)
+DuongKinh(A: DoanThang, B: DuongTron): DoanThang(Diem1(A), Diem2(A))
+
+#Drawings
+DoanThang(A: Diem, B: Diem)
+DuongTron(A: Diem, r: float)
+
 #Rules
 ThangHang(A: Diem, B: Diem, C: Diem): Vector(A, B).x*Vector(A, C).y - Vector(A, B).y*Vector(A, C).x == 0
 Thuoc1(A: Diem, B: DoanThang): Vector(A, Diem1(B)).x*Vector(A, Diem2(B)).y - Vector(A, Diem1(B)).y*Vector(A, Diem2(B)).x == 0
@@ -16,8 +27,7 @@ DoDai1(A: Vector): sqrt(A.x^2 + A.y^2)
 DoDai2(A: DoanThang): sqrt(Vector(Diem1(A), Diem2(A)).x^2 + Vector(Diem1(A), Diem2(A)).y^2)
 TrungNhau(A: Diem, B: Diem): A.x == B.x ; A.y == B.y
 NoiTiepTrong(A: TamGiac, B: DuongTron): Thuoc2(A.Diema, B) ; Thuoc2(A.Diemb, B) ; Thuoc2(A.Diemc, B)
-TiepTuyen(A: DoanThang, B: DuongTron): KhoangCach(B.Tam, A) == B.BK
-KhoangCach(A: Diem, B: DoanThang): abs((Diem2(B).y - Diem1(B).y)*A.x - (Diem2(B).x - Diem1(B).x)*A.y + Diem2(B).x*Diem1(B).y - Diem2(B).y*Diem1(B).x)/DoDai2(B)
+TiepTuyen(A: DoanThang, B: DuongTron): (((Diem2(A).y - Diem1(A).y)*B.Tam.x - (Diem2(A).x - Diem1(A).x)*B.Tam.y + Diem2(A).x*Diem1(A).y - Diem2(A).y*Diem1(A).x)/DoDai2(A) - B.BK)*(-((Diem2(A).y - Diem1(A).y)*B.Tam.x - (Diem2(A).x - Diem1(A).x)*B.Tam.y + Diem2(A).x*Diem1(A).y - Diem2(A).y*Diem1(A).x)/DoDai2(A) - B.BK) == 0
 VectorHieu(A: Vector, B: Vector): Vector(A.x - B.x, A.y - B.y)
 VectorTichVoHuong(A: Vector, B: Vector): A.x*B.x + A.y*B.y
 DoanThangBangNhau(A: DoanThang, B: DoanThang): DoDai2(A) == DoDai2(B)
@@ -25,7 +35,7 @@ DoanThangDoDai(A: DoanThang, B: float): DoDai2(A) == B
 KhongTrung(A: Diem, B: Diem):
 
 #Constraint
-Thuoc1(A: Diem, B: DoanThang): (A.x - Diem1(B).x)*(A.x - Diem2(B).x) < 0 ; (A.y - Diem1(B).y)*(A.y - Diem2(B).y) < 0
+Thuoc1(A: Diem, B: DoanThang): (A.x - Diem1(B).x)*(A.x - Diem2(B).x) < 0 ; (A.y - Diem1(B).y)*(A.y - Diem2(B).y) < 0 ; (A.x - Diem1(B).x)^2 + (A.y - Diem1(B).y)^2 > 0 ; (A.x - Diem2(B).x)^2 + (A.y - Diem2(B).y)^2 > 0
 Thuoc2(A: Diem, B: DuongTron): (O.x - A.x)^2 < B.BK^2 ; (O.y - A.y)^2 < B.BK^2
 KhongTrung(A: Diem, B: Diem): (A.x - B.x)^2 + (A.y - B.y)^2 > 0
 DuongTron(A: Diem, B: float): B > 0

@@ -3,19 +3,23 @@ from matplotlib.pyplot import *
 from sympy import *
 import random
 
+rangeOfRand = 5
+randomizedValue = []
 
-class Point:
-    def __init__(self, coors, label):
+
+class PointX:
+    def __init__(self, coors, label=None):
         self.x = coors[0]
         self.y = coors[1]
         self.label = label
 
     def Draw(self):
-        plot(self.x, self.y, 'ro-', linewidth=2)
-        annotate(self.label, xy=(self.x + 0.3, self.y))
+        plt.plot(self.x, self.y, 'ro-', linewidth=2)
+        if self.label != None:
+            plt.annotate(self.label, xy=(self.x + 0.3, self.y))
 
 
-class LineSeg:
+class LineSegX:
     def __init__(self, point1, point2):
         self.point1 = point1
         self.point2 = point2
@@ -23,7 +27,7 @@ class LineSeg:
     def Draw(self):
         Xcoors = [self.point1.x, self.point2.x]
         Ycoors = [self.point1.y, self.point2.y]
-        plot(Xcoors, Ycoors, 'bo-', linewidth=1)
+        plt.plot(Xcoors, Ycoors, 'bo-', linewidth=1)
         self.point1.Draw()
         self.point2.Draw()
 
@@ -40,7 +44,7 @@ class Polygon:
             LineSeg(self.points[i], self.points[i + 1]).Draw()
 
 
-class Circle:
+class CircleX:
     def __init__(self, origin, bk):
         self.origin = origin
         self.bk = bk
@@ -150,7 +154,7 @@ def LoadKnowledgeBase(knowledgeFile):
     knownledgeFile.close()
 
     knownledge = [i for i in knownledge if i != '']
-    categorized = [[], [], [], [], []]
+    categorized = [[], [], [], [], [], [], []]
     for i in knownledge:
         if i == '#Objects':
             k = 0
@@ -167,10 +171,16 @@ def LoadKnowledgeBase(knowledgeFile):
         if i == '#Constraint':
             k = 4
             continue
+        if i == '#Constructings':
+            k = 5
+            continue
+        if i == '#Drawings':
+            k = 6
+            continue
         categorized[k] += [i]
     return ProcessObjects(categorized[0]), ProcessRules(categorized[1]), ProcessRules(
         categorized[2]), ProcessInterpreting(
-        categorized[3]), ProcessRules(categorized[4])
+        categorized[3]), ProcessRules(categorized[4]), ProcessRules(categorized[5]), ProcessDrawing(categorized[6])
 
 
 def ProcessInterpreting(interpreting):
@@ -182,6 +192,22 @@ def ProcessInterpreting(interpreting):
         param = param.split(',')
         param = [int(i.strip()) for i in param]
         Ret.update({name: param})
+    return Ret
+
+
+def ProcessDrawing(rules):
+    Ret = []
+    for i in rules:
+        start = i.find('(')
+        stop = i.find(')') + 1
+        name = i[:start]
+        param = i[start + 1:stop - 1]
+        param = param.split(',')
+        param = [i.split(':')[0] for i in param]
+        param = [i.strip() for i in param]
+        rule = [name.strip(), param]
+        Ret += [rule]
+
     return Ret
 
 
@@ -564,39 +590,118 @@ def SolveProblemSet(problemSet, constraint):
     Sol = {}
     Ret = [sorted(i, key=lambda x: len(x[1])) for i in Ret]
     for i in Ret:
-        for j in i:
-            while True:
-                unknown = set(j[1]) - set(Sol)
-                numofunknown = len(unknown)
-                if numofunknown > 1:
-                    GenerateUnknown(Sol, next(iter(unknown)), constraint)
-                elif numofunknown == 1:
-                    SolveEquation(j[0], Sol, constraint)
-                    break
-    return Ret
+        while True:
+            found2 = False
+            found0 = True
+            while len(i) > 1 and found0:
+                found0 = False
+                for j in range(len(i) - 1):
+                    paramsJ = set(i[j][1]) - set(Sol)
+                    found = False
+                    for k in range(j + 1, len(i)):
+                        paramsK = set(i[k][1]) - set(Sol)
+                        if paramsJ == paramsK and len(paramsJ) != 0:
+                            solved = True
+                            while True:
+                                unknown = paramsJ - set(Sol)
+                                numofunknown = len(unknown)
+                                if numofunknown > 2:
+                                    GenerateUnknown(Sol, next(iter(unknown)), constraint)
+                                elif numofunknown == 2:
+                                    solved = SolveEquationSystem([i[k][0], i[j][0]], Sol, constraint)
+                                    break
+                            if solved:
+                                found2 = True
+                                i.remove(i[k])
+                                i.remove(i[j])
+                                found = True
+                                break
+                    if found:
+                        found0 = True
+                        break
+            found1 = False
+            for j in i:
+                while True:
+                    unknown = set(j[1]) - set(Sol)
+                    numofunknown = len(unknown)
+                    if numofunknown > 1:
+                        GenerateUnknown(Sol, next(iter(unknown)), constraint)
+                    elif numofunknown == 1:
+                        solvable = SolveEquation(j[0], Sol, constraint)
+                        if not solvable:
+                            continue
+                        found1 = True
+                        break
+                    if numofunknown == 0:
+                        break
+            if not found2 and not found1:
+                break
+    return Sol
+
+
+def SolveEquationSystem(sys, solution, constraint):
+    Ret = [sympify(i).subs(solution) for i in sys]
+    Ret = solve(Ret, dict=True)
+    if len(Ret) == 0:
+        tmp1 = randomizedValue.pop()
+        solution.pop(tmp1[0])
+        for i in tmp1[1]:
+            solution.pop(i)
+        return False
+    Ret = Ret[0] if type(Ret) is list else Ret
+    Ret0 = {}
+    for i in Ret:
+        if Ret[i].as_real_imag()[1] != 0:
+            tmp1 = randomizedValue.pop()
+            solution.pop(tmp1[0])
+            for i in tmp1[1]:
+                solution.pop(i)
+            return False
+        tmp = randomizedValue.pop()
+        tmp[1].append(str(i))
+        randomizedValue.append(tmp)
+        item = {str(i): Ret[i]}
+        Ret0.update(item)
+
+    solution.update(Ret0)
+    return True
 
 
 def SolveEquation(equa, solution, constraint):
     Ret = sympify(equa).subs(solution)
     Ret0 = solve(Ret, dict=True)
+    if len(Ret0) == 0:
+        tmp1 = randomizedValue.pop()
+        solution.pop(tmp1[0])
+        for i in tmp1[1]:
+            solution.pop(i)
+        return False
     for i in Ret0:
         sol = Ret0[0]
         k = next(iter(sol))
+        tmp = randomizedValue.pop()
+        tmp[1].append(str(k))
+        randomizedValue.append(tmp)
         sol = {str(k): sol[k]}
         tmp = solution
         tmp.update(sol)
         if CheckConstraint(tmp, constraint):
             solution.update(sol)
             break
-    print('')
-    pass
+    return True
 
 
 def GenerateUnknown(solution, unknown, constraint):
     while True:
         tmp1 = solution
-        tmp0 = random.randint(-20, 20)
+        global rangeOfRand
+        tmp0 = random.randint(-rangeOfRand, rangeOfRand)
+        rangeOfRand += 1
+        if rangeOfRand == 1000:
+            rangeOfRand = 5
         tmp1.update({unknown: tmp0})
+        global randomizedValue
+        randomizedValue.append([unknown, []])
         if CheckConstraint(tmp1, constraint):
             solution.update(tmp1)
             break
@@ -628,15 +733,151 @@ def printx(var):
     print(var)
 
 
-Objects, Rules, Rules0, Interpreting, Constraint = LoadKnowledgeBase('Knowledge.kb')
+def constructObject(problemSets, constructings, rules0):
+    Ret0 = []
+    for i in problemSets:
+        for j in i:
+            Ret = j
+            while True:
+                ruleFound = False
+                for i in constructings:
+                    ruleName = i[0]
+                    foundRule = Ret.find(ruleName)
+                    if foundRule == -1:
+                        continue
+                    ruleFound = True
+                    start, stop = GetRuleUsingPos(Ret, ruleName)
+                    params = GetRulesParam(Ret, ruleName)
+                    params = SplitParams(params)
 
-known = open('probs2.txt').readlines()
+                    replacement = i[2]
+                    k = 0
+                    while True:
+                        if k >= len(replacement):
+                            break
+                        for j, v in enumerate(i[1]):
+                            if v[0] == replacement[k] and (
+                                                    replacement[k + 1] == ' ' or replacement[k + 1] == ',' or
+                                                replacement[
+                                                        k + 1] == ')' or replacement[k + 1] == '.'):
+                                replacement = replacement[:k] + params[j] + replacement[k + 1:]
+                                k += len(params[j])
+                        k += 1
+                    Ret0 += [replacement]
+                    Ret = Ret[stop + 1:]
+                if ruleFound == False:
+                    break
+    Ret0 = [ApplyRules0ToProblem(rules0, i) for i in Ret0]
+    Ret1 = []
+    for i in Ret0:
+        a = i.split(';')
+        if len(a) > 1:
+            a = [k.strip() for k in a]
+        Ret1 += a
+    Ret2 = []
+    for i in Ret1:
+        start = i.find('(')
+        name = i[:start]
+        params = i[start + 1:-1].split(',')
+        params = [i.strip() for i in params]
+        tmp = [name, params]
+        Ret2 += [tmp]
+    return Ret2
+
+
+def getObjects(problemSets, objects):
+    Ret0 = []
+    for i in problemSets:
+        for j in i:
+            k = 0
+            while True:
+                Ret = j[k:]
+                foundRule = False
+                for i in objects:
+                    name = i[0]
+                    if name == 'Vector':
+                        continue
+                    start, stop = GetRuleUsingPos(Ret, name)
+                    if start == -1:
+                        continue
+                    foundRule = True
+                    stop += 1
+                    if Ret[stop] == '.':
+                        stop += 1
+                    k += stop
+                    params = SplitParams(GetRulesParam(Ret, name))
+                    obj = [name, params]
+                    Ret0 += [obj]
+                if not foundRule:
+                    break
+    Ret1 = []
+    for i in Ret0:
+        found = False
+        for j in Ret1:
+            if i[0] == j[0]:
+                a = set(i[1])
+                b = set(j[1])
+                if a <= b and b <= a:
+                    found = True
+                    break
+        if not found:
+            Ret1 += [i]
+    return Ret1
+
+
+def Drawing(points, object):
+    Points = {}
+    for i in points:
+        if i[-1] == 'x' or i[-1] == 'y':
+            tmp = i[0]
+            tmp = {i[-1]: points[i]}
+            val = Points.get(i[0], -1)
+            if val == -1:
+                tmp2 = {i[0]: tmp}
+                Points.update(tmp2)
+            else:
+                tmp1 = Points[i[0]]
+                tmp1.update(tmp)
+        else:
+            Points.update({i: points[i]})
+
+    for i in Points:
+        if type(Points[i]) is dict:
+            p = PointX([Points[i]['x'], Points[i]['y']], i)
+            p.Draw()
+    for i in object:
+        if i[0] == 'DoanThang':
+            s = LineSegX(PointX([Points[i[1][0]]['x'], Points[i[1][0]]['y']]),
+                         PointX([Points[i[1][1]]['x'], Points[i[1][1]]['y']]))
+            s.Draw()
+        if i[0] == 'DuongTron':
+            s = CircleX(PointX([Points[i[1][0]]['x'], Points[i[1][0]]['y']]), Points[i[1][1]])
+            s.Draw()
+
+    # A = Point([14, 1], 'A')
+    # A.Draw()
+    # poly = Polygon([A, B, C])
+    # poly.Draw()
+    # cir = Circle(A, 4)
+    # cir.Draw()
+    # axis([0, 10, 0, 10])
+    # legend()
+    axis([-20, 20, -20, 20])
+    plt.axis('scaled')
+    plt.show()
+    print('')
+    pass
+
+
+Objects, Rules, Rules0, Interpreting, Constraint, Constructing, Drawings = LoadKnowledgeBase('Knowledge.kb')
+
+known = open('probs1.txt').readlines()
 problemSets = ProcessProblem1(known)
 problemSets = PreProcessProblemSets(problemSets, Interpreting=Interpreting)
+construct = constructObject(problemSets, Constructing, Rules0)
 problemSets, constraint = ApplyRulesToProblemSet(Rules, Rules0, Objects, Constraint, problemSets)
-print('')
-Result = SolveProblemSet(problemSets, constraint)
-PrintProblemSet(Result)
+Points = SolveProblemSet(problemSets, constraint)
+Drawing(Points, construct)
 # TODO: solve abs() equation
 
 # known = ApplyInterpreting(Interpreting, known)
